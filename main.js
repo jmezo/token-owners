@@ -20,16 +20,20 @@ const main = async () => {
   console.log(blockNum);
 
   const start = Date.now();
-  queryFilter(blockNum);
+  await queryFilter(blockNum);
   const end = Date.now();
-  console.log({start, end, time: end - start;});
+  console.log({ start, end, time: end - start });
 };
 
 const queryFilter = async (blockNum) => {
   let from = CONTRACT_CREATION;
   let to = from + 10000;
   while (from < blockNum) {
-    const transfers = await contract.queryFilter(contract.filters.Transfer(), from, to);
+    const transfers = await contract.queryFilter(
+      contract.filters.Transfer(),
+      from,
+      to
+    );
     transfers.forEach(write);
     console.log("done with:", from, to);
 
@@ -37,11 +41,11 @@ const queryFilter = async (blockNum) => {
     to = from + 10000;
   }
   console.log("done at block num:", blockNum);
-}
+};
 
 const write = (transfer) => {
   const [from, to, amount] = transfer.args;
   fs.appendFileSync(FILE_PATH, `[${from},${to},${amount}]\n`);
-}
+};
 
 main();

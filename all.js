@@ -5,12 +5,13 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const FILE_PATH = "./.transfers/transfers_all.txt";
-const CONTRACT_CREATION = 0;
+const ERROR_PATH = "./.transfers/transfers_all_ERROR.txt";
+const START_BLOCK = 4086081;
+const STEP = 1000;
 
 const ABI = [
   "event Transfer(address indexed from, address indexed to, uint amount)",
 ];
-
 
 const EVENT_ID = "Transfer(address,address,uint256)";
 const TRANSFER_TOPIC =
@@ -47,8 +48,8 @@ const onFilter = async (blockNum) => {
 };
 
 const queryFilter = async (blockNum) => {
-  let from = CONTRACT_CREATION;
-  let to = from + 10000;
+  let from = START_BLOCK;
+  let to = from + STEP;
   while (from < blockNum) {
     const filter = { topics: [TRANSFER_TOPIC], fromBlock: from, toBlock: to };
     const transfers = await provider.getLogs(filter);
@@ -56,7 +57,7 @@ const queryFilter = async (blockNum) => {
     console.log("done with:", from, to);
 
     from = to + 1;
-    to = from + 10000;
+    to = from + STEP;
   }
   console.log("done at block num:", blockNum);
 };
@@ -68,7 +69,23 @@ const parseAndWrite = (log) => {
   } catch (err) {
     return;
   }
-  const [from, to, amount] = transfer.args;
+
+  let from, to, amount;
+  try {
+    [from, to, amount] = transfer.args;
+  } catch (err) {
+    const logData = {
+      txHash: log.transactionHash,
+      blockNum: log.blockNumber,
+      logIndex: log.logIndex,
+    };
+    fs.appendFileSync(
+      ERROR_PATH,
+      "parse args error: " + JSON.stringify(logData) + "\n"
+    );
+    return;
+  }
+
   fs.appendFileSync(FILE_PATH, `[${log.address},${from},${to},${amount}]\n`);
 };
 
